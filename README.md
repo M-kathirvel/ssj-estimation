@@ -22,8 +22,9 @@ This local mode is intended for single-device prototyping, not as a secure, mult
 - Net weight = max(0, gross weight − cover tare)
 - Pure silver weight = net weight × silver touch ÷ 100
 - Sales pure weight = max(0, gross weight − cover tare) × manual touch ÷ 100
-- Item amount = sales pure weight × manually entered silver rate + (net weight × making-charge rate)
-- Customer pure return = return weight × manual return touch ÷ 100; rate-cut metal credit = customer pure return × manually entered return-metal market rate
+- Board Rate (₹/g) is entered manually on each estimate. Sales pure metal cost = sales pure weight × Board Rate.
+- Item amount = sales pure metal cost + (net weight × making-charge rate)
+- Customer pure return = return weight × manual return touch ÷ 100; rate-cut metal credit = customer pure return × the same manually entered Board Rate
 - Net payable = max(0, item total − metal credit − discount); balance due = net payable − cash paid − bank/UPI paid
-- Settlement supports cash-only, silver-exchange-only, and hybrid/split modes. Estimate number, billing date, both manual touch mappings, per-item silver rate, making-charge rate, return-metal market rate, and discount are editable.
-- New item rows start with blank PCS, weights, touch, silver rate, and making-charge fields. Payment, discount, and return-metal numeric inputs also start blank; empty or invalid values safely calculate as zero, and derived weights and amounts update as you type.
+- Settlement supports cash-only, silver-exchange-only, and hybrid/split modes. Estimate number, billing date, Board Rate, both manual touch mappings, making-charge rate, and discount are editable.
+- New item rows start with blank PCS, weights, touch, and making-charge fields. Board Rate, payment, discount, and return-metal numeric inputs also start blank; empty or invalid values safely calculate as zero, and derived weights and amounts update as you type.

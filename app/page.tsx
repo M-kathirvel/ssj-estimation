@@ -37,7 +37,6 @@ type EstimateItem = {
   gross: string;
   tare: string;
   touch: string;
-  rate: string;
   mcRate: string;
   details: string;
 };
@@ -74,7 +73,6 @@ type Settlement = {
   bank: string;
   returnWeight: string;
   returnTouch: string;
-  returnRate: string;
   discount: string;
 };
 
@@ -104,7 +102,6 @@ const blankItem = (): EstimateItem => ({
   gross: "",
   tare: "",
   touch: "",
-  rate: "",
   mcRate: "",
   details: "",
 });
@@ -169,6 +166,7 @@ export default function Home() {
   const [estimates, setEstimates] = useState(initialEstimates);
   const [dataReady, setDataReady] = useState(false);
   const [items, setItems] = useState<EstimateItem[]>([]);
+  const [boardRate, setBoardRate] = useState("");
   const [estimateNumber, setEstimateNumber] = useState(() => {
     const today = new Date();
     return `S${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}001`;
@@ -190,7 +188,6 @@ export default function Home() {
     bank: "",
     returnWeight: "",
     returnTouch: "",
-    returnRate: "",
     discount: "",
   });
   const [notice, setNotice] = useState("");
@@ -228,23 +225,28 @@ export default function Home() {
   }, [customers, estimates, dataReady]);
 
   const customer = customers.find((entry) => entry.id === selectedCustomer);
+  const marketRate = numericValue(boardRate);
   const totals = useMemo(() => items.reduce(
     (sum, item) => {
       const gross = numericValue(item.gross);
       const net = finiteCalculation(Math.max(0, gross - numericValue(item.tare)));
       const pure = finiteCalculation(net * touchValue(item.touch) / 100);
-      const amount = finiteCalculation(pure * numericValue(item.rate) + net * numericValue(item.mcRate));
+      const silverCost = finiteCalculation(pure * marketRate);
+      const makingCharges = finiteCalculation(net * numericValue(item.mcRate));
+      const amount = finiteCalculation(silverCost + makingCharges);
       return {
         gross: finiteCalculation(sum.gross + gross),
         net: finiteCalculation(sum.net + net),
         pure: finiteCalculation(sum.pure + pure),
+        silverCost: finiteCalculation(sum.silverCost + silverCost),
+        makingCharges: finiteCalculation(sum.makingCharges + makingCharges),
         amount: finiteCalculation(sum.amount + amount),
       };
     },
-    { gross: 0, net: 0, pure: 0, amount: 0 },
-  ), [items]);
+    { gross: 0, net: 0, pure: 0, silverCost: 0, makingCharges: 0, amount: 0 },
+  ), [items, marketRate]);
   const returnPureWeight = finiteCalculation(numericValue(settlement.returnWeight) * touchValue(settlement.returnTouch) / 100);
-  const metalCredit = finiteCalculation(returnPureWeight * numericValue(settlement.returnRate));
+  const metalCredit = finiteCalculation(returnPureWeight * marketRate);
   const appliedMetalCredit = settlement.mode === "cash" ? 0 : metalCredit;
   const appliedReturnPureWeight = settlement.mode === "cash" ? 0 : returnPureWeight;
   const discount = numericValue(settlement.discount);
@@ -540,6 +542,7 @@ export default function Home() {
                 <div className="meta-field thru-field"><label>Thru / Broker</label><input value={thru} onChange={(event) => setThru(event.target.value)} placeholder="Broker name (optional)" /></div>
                 <label className="meta-field"><span className="field-label">Estimate no.</span><input className="meta-input" type="text" value={estimateNumber} onChange={(event) => setEstimateNumber(event.target.value)} placeholder={suggestedEstimateNumber} autoComplete="off" /></label>
                 <label className="meta-field"><span className="field-label">Date</span><span className="date-input-wrap"><CalendarDays size={14} /><input className="meta-date-input" type="date" value={estimateDate} onChange={(event) => setEstimateDate(event.target.value)} /></span></label>
+                <label className="meta-field board-rate-field"><span className="field-label">Board Rate (₹/g)</span><input aria-label="Board Rate ₹ per gram" className="meta-input" type="number" min="0" step="0.01" value={boardRate} onChange={(event) => setBoardRate(event.target.value)} placeholder="0.00" /></label>
               </div>
 
               <div className="previous-balances">
@@ -552,12 +555,12 @@ export default function Home() {
 
               <div className="table-scroller">
                 <table className="estimate-table">
-                  <thead><tr><th className="sno-col">#</th><th className="particular-col">Particulars</th><th>PCS</th><th>G.Wg <small>g</small></th><th>Cover <small>g</small></th><th>Silver touch <small>%</small></th><th>Pure silver <small>g</small></th><th>Silver rate <small>₹/g</small></th><th>MC rate <small>₹</small></th><th>Amount <small>₹</small></th><th>Details</th><th /></tr></thead>
-                  <tbody>{items.length === 0 ? <tr><td colSpan={12} className="empty-billing">No items yet. Add an item row to begin this silver estimate.</td></tr> : items.map((item, index) => {
+                  <thead><tr><th className="sno-col">#</th><th className="particular-col">Particulars</th><th>PCS</th><th>G.Wg <small>g</small></th><th>Cover <small>g</small></th><th>Silver touch <small>%</small></th><th>Pure silver <small>g</small></th><th>MC rate <small>₹/g</small></th><th>Amount <small>₹</small></th><th>Details</th><th /></tr></thead>
+                  <tbody>{items.length === 0 ? <tr><td colSpan={11} className="empty-billing">No items yet. Add an item row to begin this silver estimate.</td></tr> : items.map((item, index) => {
                     const gross = numericValue(item.gross);
                     const net = finiteCalculation(Math.max(0, gross - numericValue(item.tare)));
                     const pure = finiteCalculation(net * touchValue(item.touch) / 100);
-                    const amount = finiteCalculation(pure * numericValue(item.rate) + net * numericValue(item.mcRate));
+                    const amount = finiteCalculation(pure * marketRate + net * numericValue(item.mcRate));
                     return <tr key={item.id}>
                       <td className="sno-cell">{String(index + 1).padStart(2, "0")}</td>
                       <td><select aria-label={`Particulars row ${index + 1}`} className="item-select" value={item.particulars} onChange={(event) => updateItem(item.id, "particulars", event.target.value)}><option value="">Select item</option>{particularsOptions.map((option) => <option key={option}>{option}</option>)}</select></td>
@@ -566,14 +569,13 @@ export default function Home() {
                       <td><input aria-label={`Cover tare row ${index + 1}`} type="number" min="0" step="0.001" value={item.tare} placeholder="0.000" onChange={(event) => updateItem(item.id, "tare", event.target.value)} /></td>
                       <td><input aria-label={`Touch Mapping A.Touch row ${index + 1}`} className="manual-touch-input" type="number" min="0" max="100" step="0.01" value={item.touch} placeholder="0.00" onChange={(event) => updateItem(item.id, "touch", event.target.value)} /></td>
                       <td className="computed-cell">{pure.toFixed(3)}</td>
-                      <td><input aria-label={`Silver rate row ${index + 1}`} type="number" min="0" step="0.01" value={item.rate} placeholder="0.00" onChange={(event) => updateItem(item.id, "rate", event.target.value)} /></td>
                       <td><input aria-label={`Making charge rate row ${index + 1}`} type="number" min="0" step="0.01" value={item.mcRate} placeholder="0.00" onChange={(event) => updateItem(item.id, "mcRate", event.target.value)} /></td>
                       <td className="amount-cell">{amount.toFixed(2)}</td>
                       <td><input aria-label={`Details row ${index + 1}`} className="details-input" value={item.details} onChange={(event) => updateItem(item.id, "details", event.target.value)} placeholder="Add note" /></td>
                       <td><button className="row-remove" aria-label={`Remove row ${index + 1}`} onClick={() => setItems((current) => current.filter((entry) => entry.id !== item.id))}><X size={14} /></button></td>
                     </tr>;
                   })}</tbody>
-                  <tfoot><tr><td colSpan={3} className="total-label">TOTAL</td><td>{totals.gross.toFixed(3)}</td><td>{(totals.gross - totals.net).toFixed(3)}</td><td>—</td><td>{totals.pure.toFixed(3)}</td><td colSpan={2}>—</td><td className="total-amount">{currency(totals.amount)}</td><td colSpan={2} /></tr></tfoot>
+                  <tfoot><tr><td colSpan={3} className="total-label">TOTAL</td><td>{totals.gross.toFixed(3)}</td><td>{(totals.gross - totals.net).toFixed(3)}</td><td>—</td><td>{totals.pure.toFixed(3)}</td><td>{currency(totals.makingCharges)}</td><td className="total-amount">{currency(totals.amount)}</td><td colSpan={2} /></tr></tfoot>
                 </table>
               </div>
 
@@ -586,7 +588,6 @@ export default function Home() {
                   {settlement.mode !== "cash" && <>
                     <label className="settle-field"><span><Gem size={14} /> Customer return weight</span><div><input aria-label="Customer return weight" type="number" min="0" step="0.001" value={settlement.returnWeight} onChange={(event) => updateSettlement("returnWeight", event.target.value)} placeholder="0.000" /><span className="unit-suffix">g</span></div></label>
                     <label className="settle-field"><span><Gem size={14} /> Touch Mapping / A.Touch</span><div><input aria-label="Return metal touch mapping" type="number" min="0" max="100" step="0.01" value={settlement.returnTouch} onChange={(event) => updateSettlement("returnTouch", event.target.value)} placeholder="0.00" /><span className="unit-suffix">%</span></div></label>
-                    <label className="settle-field"><span><Wallet size={14} /> Manual market rate</span><div><span>₹</span><input aria-label="Return metal market rate" type="number" min="0" step="0.01" value={settlement.returnRate} onChange={(event) => updateSettlement("returnRate", event.target.value)} placeholder="0.00" /><span className="unit-suffix">/ g</span></div></label>
                     <div className="settle-field settlement-computed"><span>Customer pure weight</span><strong>{returnPureWeight.toFixed(3)} g</strong></div>
                     <div className="settle-field settlement-computed"><span>Rate cut metal credit</span><strong>{currency(metalCredit)}</strong></div>
                   </>}
@@ -597,6 +598,8 @@ export default function Home() {
                   <label className="settle-field"><span><Wallet size={14} /> Discount (₹)</span><div><span>₹</span><input aria-label="Discount rupees" type="number" min="0" step="0.01" value={settlement.discount} onChange={(event) => updateSettlement("discount", event.target.value)} placeholder="0.00" /></div></label>
                 </div>
                 <div className="settlement-breakdown">
+                  <div><span>Sales pure metal cost</span><strong>{currency(totals.silverCost)}</strong></div>
+                  <div><span>Making charges</span><strong>+ {currency(totals.makingCharges)}</strong></div>
                   <div><span>Item amount</span><strong>{currency(totals.amount)}</strong></div>
                   {settlement.mode !== "cash" && <div><span>Metal credit</span><strong>− {currency(appliedMetalCredit)}</strong></div>}
                   <div><span>Discount</span><strong>− {currency(discount)}</strong></div>
