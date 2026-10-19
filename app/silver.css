@@ -1,0 +1,32 @@
+.customer-option-row{display:flex;align-items:center;border-bottom:1px solid #f2f4f3}
+.customer-option-row:hover{background:#f7faf8}
+.customer-options .customer-option-select{width:100%;height:43px;display:flex;align-items:center;gap:8px;flex:1;min-width:0;text-align:left;border:0;background:transparent;padding:0 8px;cursor:pointer}
+.customer-option-select>span:nth-child(2){display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.customer-option-select strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:600}
+.customer-option-select small{font-size:9px;color:#96a09e}
+.customer-option-select>svg{color:#a3adaa}
+.customer-edit-button{height:30px;width:30px;flex-shrink:0;margin-right:5px;border:0;border-radius:5px;background:transparent;color:#87958e;cursor:pointer}
+.customer-edit-button:hover{background:#eaf4ef;color:#267460}
+.touch-select{width:60px;height:25px;border:1px solid transparent;border-radius:3px;background:transparent;color:#43564c;font-size:8px;text-align:right}
+.touch-select:focus,.touch-select:hover{border-color:#dce6e1;background:#fff;outline:0}
+.settlement-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+.settlement-touch{height:21px;max-width:53px;border:1px solid #e9edeb;border-radius:3px;background:#fff;color:#62716a;font-size:8px}
+.empty-billing{height:74px!important;text-align:center!important;color:#99a39f!important;font-size:10px!important}
+.activity-empty{padding:19px 4px;text-align:center;color:#99a39f;font-size:9px}
+.modal-backdrop{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:#14251f66;backdrop-filter:blur(2px)}
+.customer-modal{width:min(100%,470px);max-height:calc(100vh - 40px);overflow:auto;border:1px solid #e9efec;border-radius:12px;background:#fff;box-shadow:0 22px 70px #13271f30}
+.customer-modal-heading{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;border-bottom:1px solid #edf0ef}
+.customer-modal-heading>div{display:flex;align-items:center;gap:11px}
+.customer-modal-heading h2{margin:0;color:#293a34;font:700 16px "Manrope",sans-serif}
+.customer-modal-heading p{margin:5px 0 0;color:#929d98;font-size:10px}
+.modal-icon{height:36px;width:36px;display:grid;place-items:center;border-radius:9px;background:#e9f4ef;color:#347d66}
+.customer-modal form{display:grid;gap:13px;padding:18px 22px 20px}
+.customer-form-field{display:grid;gap:6px}
+.customer-form-field>span{color:#69766f;font-size:10px;font-weight:600}
+.customer-form-field>span i{color:#bd6f54;font-style:normal}
+.customer-form-field input,.customer-form-field textarea{width:100%;min-height:36px;border:1px solid #e4eae7;border-radius:6px;background:#fff;padding:8px 10px;outline:0;color:#34443c;font-size:11px;resize:vertical}
+.customer-form-field input:focus,.customer-form-field textarea:focus{border-color:#8ebbad;box-shadow:0 0 0 2px #e9f5f1}
+.customer-form-field input::placeholder,.customer-form-field textarea::placeholder{color:#a7b0ab}
+.customer-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+@media(max-width:680px){.settlement-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.customer-modal-heading{padding:16px 17px 13px}.customer-modal form{padding:15px 17px 17px}}
+@media print{.modal-backdrop{display:none!important}.customer-dropdown,.touch-select,.settlement-touch{display:none!important}}
