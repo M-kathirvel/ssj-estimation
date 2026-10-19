@@ -21,5 +21,6 @@ This local mode is intended for single-device prototyping, not as a secure, mult
 
 - Net weight = max(0, gross weight − cover tare)
 - Pure silver weight = net weight × silver touch ÷ 100
-- Line amount = pure weight × rate + net weight × making-charge rate
+- Line amount = pure silver weight × silver rate + (net weight × making-charge rate)
 - Cash and bank settlements reduce the displayed cash balance; silver bullion and old-silver exchange reduce the pure-silver balance.
+- Estimate number, billing date, daily silver board rate, silver rate, and making-charge rate are editable. Silver item rates start blank; row values, amounts, and totals recalculate as they are entered.

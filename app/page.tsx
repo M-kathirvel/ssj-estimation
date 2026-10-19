@@ -66,11 +66,11 @@ type SavedEstimate = {
 type StoredData = {
   customers: Customer[];
   estimates: SavedEstimate[];
+  boardRate?: string;
 };
 
 const initialCustomers: Customer[] = [];
 const initialEstimates: SavedEstimate[] = [];
-const silverBoardRate = 96;
 
 const particularsOptions = [
   "SACHIN CH AND BR",
@@ -95,10 +95,20 @@ const blankItem = (): EstimateItem => ({
   gross: 0,
   tare: 0,
   touch: 92.5,
-  rate: silverBoardRate,
-  mcRate: 12,
+  rate: 0,
+  mcRate: 0,
   details: "",
 });
+
+const nextEstimateNumber = (estimates: SavedEstimate[], date = new Date()) => {
+  const prefix = `S${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}`;
+  const sequence = estimates.reduce((max, estimate) => {
+    if (!estimate.number.startsWith(prefix)) return max;
+    const suffix = Number(estimate.number.slice(prefix.length));
+    return Number.isFinite(suffix) ? Math.max(max, suffix) : max;
+  }, 0) + 1;
+  return `${prefix}${String(sequence).padStart(3, "0")}`;
+};
 
 const currency = (value: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -137,8 +147,17 @@ export default function Home() {
   const [activePage, setActivePage] = useState("Overview");
   const [customers, setCustomers] = useState(initialCustomers);
   const [estimates, setEstimates] = useState(initialEstimates);
+  const [boardRate, setBoardRate] = useState("");
   const [dataReady, setDataReady] = useState(false);
   const [items, setItems] = useState<EstimateItem[]>([]);
+  const [estimateNumber, setEstimateNumber] = useState(() => {
+    const today = new Date();
+    return `S${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}001`;
+  });
+  const [estimateDate, setEstimateDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  });
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [customerQuery, setCustomerQuery] = useState("");
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
@@ -165,6 +184,8 @@ export default function Home() {
             );
             setCustomers(restoredCustomers);
             setEstimates(restoredEstimates);
+            setEstimateNumber(nextEstimateNumber(restoredEstimates));
+            if (typeof parsed.boardRate === "string") setBoardRate(parsed.boardRate);
           }
         } catch {
           setNotice("Saved browser data could not be read. Restore your records from a backup.");
@@ -177,8 +198,8 @@ export default function Home() {
 
   useEffect(() => {
     if (!dataReady) return;
-    window.localStorage.setItem("ssj-estimation-data", JSON.stringify({ customers, estimates }));
-  }, [customers, estimates, dataReady]);
+    window.localStorage.setItem("ssj-estimation-data", JSON.stringify({ customers, estimates, boardRate }));
+  }, [customers, estimates, boardRate, dataReady]);
 
   const customer = customers.find((entry) => entry.id === selectedCustomer);
   const oldSilverPure = settlement.oldSilver * settlement.oldSilverTouch / 100;
@@ -198,18 +219,12 @@ export default function Home() {
   ), [items]);
 
   const now = new Date();
-  const estimatePrefix = `S${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const nextSequence = estimates.reduce((max, estimate) => {
-    if (!estimate.number.startsWith(estimatePrefix)) return max;
-    const suffix = Number(estimate.number.slice(estimatePrefix.length));
-    return Number.isFinite(suffix) ? Math.max(max, suffix) : max;
-  }, 0) + 1;
-  const currentNumber = `${estimatePrefix}${String(nextSequence).padStart(3, "0")}`;
-  const dateLabel = new Intl.DateTimeFormat("en-GB", {
+  const suggestedEstimateNumber = nextEstimateNumber(estimates, now);
+  const dateLabel = estimateDate ? new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(new Date());
+  }).format(new Date(`${estimateDate}T00:00:00`)) : "";
   const filteredCustomers = customers.filter((entry) =>
     `${entry.name} ${entry.phone}`.toLowerCase().includes(customerQuery.toLowerCase()),
   );
@@ -234,17 +249,27 @@ export default function Home() {
       setNotice("Enter a gross weight before saving this estimate.");
       return;
     }
+    if (!estimateNumber.trim()) {
+      setNotice("Enter an estimate number before saving.");
+      return;
+    }
+    if (!estimateDate) {
+      setNotice("Select an estimate date before saving.");
+      return;
+    }
     const estimate: SavedEstimate = {
       id: crypto.randomUUID(),
-      number: currentNumber,
+      number: estimateNumber.trim(),
       customer: customer.name,
-      date: new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date()),
+      date: new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${estimateDate}T00:00:00`)),
       amount: round(totals.amount, 2),
       pure: round(totals.pure),
       gross: round(totals.gross),
       status: "Estimate",
     };
-    setEstimates((current) => [estimate, ...current]);
+    const updatedEstimates = [estimate, ...estimates];
+    setEstimates(updatedEstimates);
+    setEstimateNumber(nextEstimateNumber(updatedEstimates));
     setNotice(`Estimate ${estimate.number} saved successfully.`);
   }
 
@@ -316,6 +341,7 @@ export default function Home() {
       exportedAt: new Date().toISOString(),
       customers,
       estimates,
+      boardRate,
     }, null, 2);
     const picker = (window as Window & {
       showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle>;
@@ -464,8 +490,8 @@ export default function Home() {
                   </div>}
                 </div>
                 <div className="meta-field thru-field"><label>Thru / Broker</label><input value={thru} onChange={(event) => setThru(event.target.value)} placeholder="Broker name (optional)" /></div>
-                <div className="meta-field"><label>Estimate no.</label><div className="meta-static">{currentNumber}</div></div>
-                <div className="meta-field"><label>Date</label><div className="meta-static"><CalendarDays size={14} />{dateLabel}</div></div>
+                <label className="meta-field"><span className="field-label">Estimate no.</span><input className="meta-input" type="text" value={estimateNumber} onChange={(event) => setEstimateNumber(event.target.value)} placeholder={suggestedEstimateNumber} autoComplete="off" /></label>
+                <label className="meta-field"><span className="field-label">Date</span><span className="date-input-wrap"><CalendarDays size={14} /><input className="meta-date-input" type="date" value={estimateDate} onChange={(event) => setEstimateDate(event.target.value)} /></span></label>
               </div>
 
               <div className="previous-balances">
@@ -491,8 +517,8 @@ export default function Home() {
                       <td><input aria-label={`Cover tare row ${index + 1}`} type="number" min="0" step="0.001" value={item.tare || ""} placeholder="0.000" onChange={(event) => updateItem(item.id, "tare", event.target.value)} /></td>
                       <td><select aria-label={`Silver touch row ${index + 1}`} className="touch-select" value={item.touch} onChange={(event) => updateItem(item.id, "touch", event.target.value)}><option value={100}>100.00%</option><option value={92.5}>92.50%</option><option value={90}>90.00%</option><option value={80}>80.00%</option></select></td>
                       <td className="computed-cell">{pure.toFixed(3)}</td>
-                      <td><input aria-label={`Rate row ${index + 1}`} type="number" min="0" step="0.01" value={item.rate || ""} onChange={(event) => updateItem(item.id, "rate", event.target.value)} /></td>
-                      <td><input aria-label={`Making charge row ${index + 1}`} type="number" min="0" step="0.01" value={item.mcRate || ""} onChange={(event) => updateItem(item.id, "mcRate", event.target.value)} /></td>
+                      <td><input aria-label={`Silver rate row ${index + 1}`} type="number" min="0" step="0.01" value={item.rate || ""} placeholder="0.00" onChange={(event) => updateItem(item.id, "rate", event.target.value)} /></td>
+                      <td><input aria-label={`Making charge rate row ${index + 1}`} type="number" min="0" step="0.01" value={item.mcRate || ""} placeholder="0.00" onChange={(event) => updateItem(item.id, "mcRate", event.target.value)} /></td>
                       <td className="amount-cell">{amount ? amount.toFixed(2) : "—"}</td>
                       <td><input aria-label={`Details row ${index + 1}`} className="details-input" value={item.details} onChange={(event) => updateItem(item.id, "details", event.target.value)} placeholder="Add note" /></td>
                       <td><button className="row-remove" aria-label={`Remove row ${index + 1}`} onClick={() => setItems((current) => current.filter((entry) => entry.id !== item.id))}><X size={14} /></button></td>
@@ -524,7 +550,7 @@ export default function Home() {
               <section className="panel rate-panel">
                 <div className="side-panel-heading"><div><span className="rate-indicator"><Gem size={15} /></span><h2>Daily Board Rate</h2></div><button className="icon-button" aria-label="More rate options"><MoreHorizontal size={19} /></button></div>
                 <p className="rate-date"><span className="rate-live-dot" /> Effective {dateLabel}</p>
-                <div className="rate-row"><span><i className="metal-dot silver-dot" /> Silver Rate / Gram (₹)</span><strong>₹ {silverBoardRate.toFixed(2)} <small>/ g</small></strong></div>
+                <label className="rate-row rate-edit-row"><span><i className="metal-dot silver-dot" /> Silver Rate / Gram (₹)</span><span className="rate-input-wrap"><span>₹</span><input aria-label="Board Silver Rate per gram" type="number" min="0" step="0.01" value={boardRate} onChange={(event) => setBoardRate(event.target.value)} placeholder="Enter rate" /><span>/ g</span></span></label>
                 <button className="text-link" onClick={() => setActivePage("Settings")}>Update silver rate <ChevronRight size={14} /></button>
               </section>
 
