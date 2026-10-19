@@ -33,12 +33,12 @@ import { useEffect, useMemo, useState } from "react";
 type EstimateItem = {
   id: string;
   particulars: string;
-  pcs: number;
-  gross: number;
-  tare: number;
-  touch: number;
-  rate: number;
-  mcRate: number;
+  pcs: string;
+  gross: string;
+  tare: string;
+  touch: string;
+  rate: string;
+  mcRate: string;
   details: string;
 };
 
@@ -66,7 +66,16 @@ type SavedEstimate = {
 type StoredData = {
   customers: Customer[];
   estimates: SavedEstimate[];
-  boardRate?: string;
+};
+
+type Settlement = {
+  mode: "cash" | "silver" | "hybrid";
+  cash: string;
+  bank: string;
+  returnWeight: string;
+  returnTouch: string;
+  returnRate: string;
+  discount: string;
 };
 
 const initialCustomers: Customer[] = [];
@@ -91,12 +100,12 @@ const particularsOptions = [
 const blankItem = (): EstimateItem => ({
   id: crypto.randomUUID(),
   particulars: "",
-  pcs: 1,
-  gross: 0,
-  tare: 0,
-  touch: 92.5,
-  rate: 0,
-  mcRate: 0,
+  pcs: "",
+  gross: "",
+  tare: "",
+  touch: "",
+  rate: "",
+  mcRate: "",
   details: "",
 });
 
@@ -115,9 +124,20 @@ const currency = (value: number) =>
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(Number.isFinite(value) ? value : 0);
 
-const round = (value: number, digits = 3) => Number(value.toFixed(digits));
+const numericValue = (value: string) => {
+  if (value.trim() === "") return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+};
+
+const finiteCalculation = (value: number) => Number.isFinite(value) ? value : 0;
+
+const touchValue = (value: string) => Math.min(100, numericValue(value));
+
+const round = (value: number, digits = 3) =>
+  Number.isFinite(value) ? Number(value.toFixed(digits)) : 0;
 
 function NavigationButton({
   icon: Icon,
@@ -147,7 +167,6 @@ export default function Home() {
   const [activePage, setActivePage] = useState("Overview");
   const [customers, setCustomers] = useState(initialCustomers);
   const [estimates, setEstimates] = useState(initialEstimates);
-  const [boardRate, setBoardRate] = useState("");
   const [dataReady, setDataReady] = useState(false);
   const [items, setItems] = useState<EstimateItem[]>([]);
   const [estimateNumber, setEstimateNumber] = useState(() => {
@@ -165,7 +184,15 @@ export default function Home() {
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
   const [customerForm, setCustomerForm] = useState({ name: "", phone: "", address: "", gstin: "" });
   const [thru, setThru] = useState("");
-  const [settlement, setSettlement] = useState({ cash: 0, bank: 0, bullion: 0, oldSilver: 0, oldSilverTouch: 100 });
+  const [settlement, setSettlement] = useState<Settlement>({
+    mode: "hybrid",
+    cash: "",
+    bank: "",
+    returnWeight: "",
+    returnTouch: "",
+    returnRate: "",
+    discount: "",
+  });
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -185,7 +212,6 @@ export default function Home() {
             setCustomers(restoredCustomers);
             setEstimates(restoredEstimates);
             setEstimateNumber(nextEstimateNumber(restoredEstimates));
-            if (typeof parsed.boardRate === "string") setBoardRate(parsed.boardRate);
           }
         } catch {
           setNotice("Saved browser data could not be read. Restore your records from a backup.");
@@ -198,33 +224,38 @@ export default function Home() {
 
   useEffect(() => {
     if (!dataReady) return;
-    window.localStorage.setItem("ssj-estimation-data", JSON.stringify({ customers, estimates, boardRate }));
-  }, [customers, estimates, boardRate, dataReady]);
+    window.localStorage.setItem("ssj-estimation-data", JSON.stringify({ customers, estimates }));
+  }, [customers, estimates, dataReady]);
 
   const customer = customers.find((entry) => entry.id === selectedCustomer);
-  const oldSilverPure = settlement.oldSilver * settlement.oldSilverTouch / 100;
   const totals = useMemo(() => items.reduce(
     (sum, item) => {
-      const net = Math.max(0, item.gross - item.tare);
-      const pure = net * item.touch / 100;
-      const amount = pure * item.rate + net * item.mcRate;
+      const gross = numericValue(item.gross);
+      const net = finiteCalculation(Math.max(0, gross - numericValue(item.tare)));
+      const pure = finiteCalculation(net * touchValue(item.touch) / 100);
+      const amount = finiteCalculation(pure * numericValue(item.rate) + net * numericValue(item.mcRate));
       return {
-        gross: sum.gross + item.gross,
-        net: sum.net + net,
-        pure: sum.pure + pure,
-        amount: sum.amount + amount,
+        gross: finiteCalculation(sum.gross + gross),
+        net: finiteCalculation(sum.net + net),
+        pure: finiteCalculation(sum.pure + pure),
+        amount: finiteCalculation(sum.amount + amount),
       };
     },
     { gross: 0, net: 0, pure: 0, amount: 0 },
   ), [items]);
+  const returnPureWeight = finiteCalculation(numericValue(settlement.returnWeight) * touchValue(settlement.returnTouch) / 100);
+  const metalCredit = finiteCalculation(returnPureWeight * numericValue(settlement.returnRate));
+  const appliedMetalCredit = settlement.mode === "cash" ? 0 : metalCredit;
+  const appliedReturnPureWeight = settlement.mode === "cash" ? 0 : returnPureWeight;
+  const discount = numericValue(settlement.discount);
+  const netPayable = finiteCalculation(Math.max(0, totals.amount - appliedMetalCredit - discount));
+  const cashPaid = settlement.mode === "silver" ? 0 : numericValue(settlement.cash);
+  const bankPaid = settlement.mode === "silver" ? 0 : numericValue(settlement.bank);
+  const totalCashPaid = finiteCalculation(cashPaid + bankPaid);
+  const balanceDue = finiteCalculation(netPayable - totalCashPaid);
 
   const now = new Date();
   const suggestedEstimateNumber = nextEstimateNumber(estimates, now);
-  const dateLabel = estimateDate ? new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(`${estimateDate}T00:00:00`)) : "";
   const filteredCustomers = customers.filter((entry) =>
     `${entry.name} ${entry.phone}`.toLowerCase().includes(customerQuery.toLowerCase()),
   );
@@ -235,8 +266,26 @@ export default function Home() {
   function updateItem(id: string, field: keyof EstimateItem, value: string) {
     setItems((current) => current.map((item) => {
       if (item.id !== id) return item;
-      if (field === "particulars" || field === "details") return { ...item, [field]: value };
-      return { ...item, [field]: value === "" ? 0 : Number(value) };
+      return { ...item, [field]: value };
+    }));
+  }
+
+  function updateSettlement(field: Exclude<keyof Settlement, "mode">, value: string) {
+    setSettlement((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  function changeSettlementMode(value: string) {
+    if (value !== "cash" && value !== "silver" && value !== "hybrid") return;
+    const mode: Settlement["mode"] = value;
+    setSettlement((current) => ({
+      ...current,
+      mode,
+      cash: mode === "silver" ? "" : current.cash,
+      bank: mode === "silver" ? "" : current.bank,
+      returnWeight: mode === "cash" ? "" : current.returnWeight,
     }));
   }
 
@@ -262,7 +311,7 @@ export default function Home() {
       number: estimateNumber.trim(),
       customer: customer.name,
       date: new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${estimateDate}T00:00:00`)),
-      amount: round(totals.amount, 2),
+      amount: round(netPayable, 2),
       pure: round(totals.pure),
       gross: round(totals.gross),
       status: "Estimate",
@@ -341,7 +390,6 @@ export default function Home() {
       exportedAt: new Date().toISOString(),
       customers,
       estimates,
-      boardRate,
     }, null, 2);
     const picker = (window as Window & {
       showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle>;
@@ -504,22 +552,23 @@ export default function Home() {
 
               <div className="table-scroller">
                 <table className="estimate-table">
-                  <thead><tr><th className="sno-col">#</th><th className="particular-col">Particulars</th><th>PCS</th><th>G.Wg <small>g</small></th><th>Cover <small>g</small></th><th>Silver touch <small>%</small></th><th>Pure silver <small>g</small></th><th>Rate <small>₹</small></th><th>MC rate <small>₹</small></th><th>Amount <small>₹</small></th><th>Details</th><th /></tr></thead>
+                  <thead><tr><th className="sno-col">#</th><th className="particular-col">Particulars</th><th>PCS</th><th>G.Wg <small>g</small></th><th>Cover <small>g</small></th><th>Silver touch <small>%</small></th><th>Pure silver <small>g</small></th><th>Silver rate <small>₹/g</small></th><th>MC rate <small>₹</small></th><th>Amount <small>₹</small></th><th>Details</th><th /></tr></thead>
                   <tbody>{items.length === 0 ? <tr><td colSpan={12} className="empty-billing">No items yet. Add an item row to begin this silver estimate.</td></tr> : items.map((item, index) => {
-                    const net = Math.max(0, item.gross - item.tare);
-                    const pure = net * item.touch / 100;
-                    const amount = pure * item.rate + net * item.mcRate;
+                    const gross = numericValue(item.gross);
+                    const net = finiteCalculation(Math.max(0, gross - numericValue(item.tare)));
+                    const pure = finiteCalculation(net * touchValue(item.touch) / 100);
+                    const amount = finiteCalculation(pure * numericValue(item.rate) + net * numericValue(item.mcRate));
                     return <tr key={item.id}>
                       <td className="sno-cell">{String(index + 1).padStart(2, "0")}</td>
                       <td><select aria-label={`Particulars row ${index + 1}`} className="item-select" value={item.particulars} onChange={(event) => updateItem(item.id, "particulars", event.target.value)}><option value="">Select item</option>{particularsOptions.map((option) => <option key={option}>{option}</option>)}</select></td>
-                      <td><input aria-label={`Pieces row ${index + 1}`} type="number" min="0" value={item.pcs || ""} onChange={(event) => updateItem(item.id, "pcs", event.target.value)} /></td>
-                      <td><input aria-label={`Gross weight row ${index + 1}`} type="number" min="0" step="0.001" value={item.gross || ""} placeholder="0.000" onChange={(event) => updateItem(item.id, "gross", event.target.value)} /></td>
-                      <td><input aria-label={`Cover tare row ${index + 1}`} type="number" min="0" step="0.001" value={item.tare || ""} placeholder="0.000" onChange={(event) => updateItem(item.id, "tare", event.target.value)} /></td>
-                      <td><select aria-label={`Silver touch row ${index + 1}`} className="touch-select" value={item.touch} onChange={(event) => updateItem(item.id, "touch", event.target.value)}><option value={100}>100.00%</option><option value={92.5}>92.50%</option><option value={90}>90.00%</option><option value={80}>80.00%</option></select></td>
+                      <td><input aria-label={`Pieces row ${index + 1}`} type="number" min="0" value={item.pcs} placeholder="0" onChange={(event) => updateItem(item.id, "pcs", event.target.value)} /></td>
+                      <td><input aria-label={`Gross weight row ${index + 1}`} type="number" min="0" step="0.001" value={item.gross} placeholder="0.000" onChange={(event) => updateItem(item.id, "gross", event.target.value)} /></td>
+                      <td><input aria-label={`Cover tare row ${index + 1}`} type="number" min="0" step="0.001" value={item.tare} placeholder="0.000" onChange={(event) => updateItem(item.id, "tare", event.target.value)} /></td>
+                      <td><input aria-label={`Touch Mapping A.Touch row ${index + 1}`} className="manual-touch-input" type="number" min="0" max="100" step="0.01" value={item.touch} placeholder="0.00" onChange={(event) => updateItem(item.id, "touch", event.target.value)} /></td>
                       <td className="computed-cell">{pure.toFixed(3)}</td>
-                      <td><input aria-label={`Silver rate row ${index + 1}`} type="number" min="0" step="0.01" value={item.rate || ""} placeholder="0.00" onChange={(event) => updateItem(item.id, "rate", event.target.value)} /></td>
-                      <td><input aria-label={`Making charge rate row ${index + 1}`} type="number" min="0" step="0.01" value={item.mcRate || ""} placeholder="0.00" onChange={(event) => updateItem(item.id, "mcRate", event.target.value)} /></td>
-                      <td className="amount-cell">{amount ? amount.toFixed(2) : "—"}</td>
+                      <td><input aria-label={`Silver rate row ${index + 1}`} type="number" min="0" step="0.01" value={item.rate} placeholder="0.00" onChange={(event) => updateItem(item.id, "rate", event.target.value)} /></td>
+                      <td><input aria-label={`Making charge rate row ${index + 1}`} type="number" min="0" step="0.01" value={item.mcRate} placeholder="0.00" onChange={(event) => updateItem(item.id, "mcRate", event.target.value)} /></td>
+                      <td className="amount-cell">{amount.toFixed(2)}</td>
                       <td><input aria-label={`Details row ${index + 1}`} className="details-input" value={item.details} onChange={(event) => updateItem(item.id, "details", event.target.value)} placeholder="Add note" /></td>
                       <td><button className="row-remove" aria-label={`Remove row ${index + 1}`} onClick={() => setItems((current) => current.filter((entry) => entry.id !== item.id))}><X size={14} /></button></td>
                     </tr>;
@@ -531,29 +580,39 @@ export default function Home() {
               <button className="add-row-button" onClick={() => setItems((current) => [...current, blankItem()])}><Plus size={15} /> Add item row</button>
 
               <div className="settlement-section">
-                <div className="settlement-heading"><div><h3>Settlement</h3><span>Record payments received with this estimate</span></div><span className="optional-tag">OPTIONAL</span></div>
+                <div className="settlement-heading"><div><h3>Settlement &amp; Adjustments</h3><span>Choose how the customer is settling this estimate</span></div><span className="optional-tag">LIVE</span></div>
+                <label className="settlement-mode-field"><span>Settlement mode</span><select aria-label="Settlement mode" value={settlement.mode} onChange={(event) => changeSettlementMode(event.target.value)}><option value="cash">Cash only</option><option value="silver">Silver exchange only</option><option value="hybrid">Hybrid / split settlement</option></select></label>
                 <div className="settlement-fields">
-                  <label className="settle-field"><span><Wallet size={14} /> Cash</span><div><span>₹</span><input aria-label="Cash settlement" type="number" min="0" value={settlement.cash || ""} onChange={(event) => setSettlement({ ...settlement, cash: Number(event.target.value) })} placeholder="0.00" /></div></label>
-                  <label className="settle-field"><span><ArrowUpRight size={14} /> UPI / Bank</span><div><span>₹</span><input aria-label="Bank settlement" type="number" min="0" value={settlement.bank || ""} onChange={(event) => setSettlement({ ...settlement, bank: Number(event.target.value) })} placeholder="0.00" /></div></label>
-                  <label className="settle-field"><span><Gem size={14} /> Silver bullion</span><div><input aria-label="Silver bullion settlement" type="number" min="0" step="0.001" value={settlement.bullion || ""} onChange={(event) => setSettlement({ ...settlement, bullion: Number(event.target.value) })} placeholder="0.000" /><span className="unit-suffix">g</span></div></label>
-                  <label className="settle-field"><span><Gem size={14} /> Old silver exchange</span><div><input aria-label="Old silver exchange weight" type="number" min="0" step="0.001" value={settlement.oldSilver || ""} onChange={(event) => setSettlement({ ...settlement, oldSilver: Number(event.target.value) })} placeholder="0.000" /><span className="unit-suffix">g</span><select aria-label="Old silver touch" className="settlement-touch" value={settlement.oldSilverTouch} onChange={(event) => setSettlement({ ...settlement, oldSilverTouch: Number(event.target.value) })}><option value={100}>100%</option><option value={92.5}>92.5%</option><option value={90}>90%</option><option value={80}>80%</option></select></div></label>
+                  {settlement.mode !== "cash" && <>
+                    <label className="settle-field"><span><Gem size={14} /> Customer return weight</span><div><input aria-label="Customer return weight" type="number" min="0" step="0.001" value={settlement.returnWeight} onChange={(event) => updateSettlement("returnWeight", event.target.value)} placeholder="0.000" /><span className="unit-suffix">g</span></div></label>
+                    <label className="settle-field"><span><Gem size={14} /> Touch Mapping / A.Touch</span><div><input aria-label="Return metal touch mapping" type="number" min="0" max="100" step="0.01" value={settlement.returnTouch} onChange={(event) => updateSettlement("returnTouch", event.target.value)} placeholder="0.00" /><span className="unit-suffix">%</span></div></label>
+                    <label className="settle-field"><span><Wallet size={14} /> Manual market rate</span><div><span>₹</span><input aria-label="Return metal market rate" type="number" min="0" step="0.01" value={settlement.returnRate} onChange={(event) => updateSettlement("returnRate", event.target.value)} placeholder="0.00" /><span className="unit-suffix">/ g</span></div></label>
+                    <div className="settle-field settlement-computed"><span>Customer pure weight</span><strong>{returnPureWeight.toFixed(3)} g</strong></div>
+                    <div className="settle-field settlement-computed"><span>Rate cut metal credit</span><strong>{currency(metalCredit)}</strong></div>
+                  </>}
+                  {settlement.mode !== "silver" && <>
+                    <label className="settle-field"><span><Wallet size={14} /> Cash paid</span><div><span>₹</span><input aria-label="Cash paid" type="number" min="0" step="0.01" value={settlement.cash} onChange={(event) => updateSettlement("cash", event.target.value)} placeholder="0.00" /></div></label>
+                    <label className="settle-field"><span><ArrowUpRight size={14} /> Bank / UPI paid</span><div><span>₹</span><input aria-label="Bank UPI paid" type="number" min="0" step="0.01" value={settlement.bank} onChange={(event) => updateSettlement("bank", event.target.value)} placeholder="0.00" /></div></label>
+                  </>}
+                  <label className="settle-field"><span><Wallet size={14} /> Discount (₹)</span><div><span>₹</span><input aria-label="Discount rupees" type="number" min="0" step="0.01" value={settlement.discount} onChange={(event) => updateSettlement("discount", event.target.value)} placeholder="0.00" /></div></label>
+                </div>
+                <div className="settlement-breakdown">
+                  <div><span>Item amount</span><strong>{currency(totals.amount)}</strong></div>
+                  {settlement.mode !== "cash" && <div><span>Metal credit</span><strong>− {currency(appliedMetalCredit)}</strong></div>}
+                  <div><span>Discount</span><strong>− {currency(discount)}</strong></div>
+                  <div className="breakdown-total"><span>Net payable</span><strong>{currency(netPayable)}</strong></div>
+                  {settlement.mode !== "silver" && <div><span>Cash + Bank / UPI paid</span><strong>− {currency(totalCashPaid)}</strong></div>}
+                  <div className="breakdown-due"><span>Balance due</span><strong>{currency(balanceDue)}</strong></div>
                 </div>
               </div>
 
               <div className="estimate-footer">
-                <div className="balance-summary"><div><span>Net pure silver balance</span><strong>{(Number(customer?.balancePure ?? 0) + totals.pure - settlement.bullion - oldSilverPure).toFixed(3)} <small>g</small></strong></div><div><span>Net cash balance</span><strong>{currency(Number(customer?.balanceCash ?? 0) + totals.amount - settlement.cash - settlement.bank)}</strong></div></div>
+                <div className="balance-summary"><div><span>Sales pure silver</span><strong>{totals.pure.toFixed(3)} <small>g</small></strong></div><div><span>Return pure silver</span><strong>{appliedReturnPureWeight.toFixed(3)} <small>g</small></strong></div><div><span>Balance due</span><strong>{currency(balanceDue)}</strong></div></div>
                 <div className="estimate-actions"><button className="button button-secondary" onClick={printEstimate}><Printer size={16} /> Print</button><button className="button button-primary" onClick={saveEstimate}><Check size={16} /> Save estimate</button></div>
               </div>
             </section>
 
             <aside className="right-column">
-              <section className="panel rate-panel">
-                <div className="side-panel-heading"><div><span className="rate-indicator"><Gem size={15} /></span><h2>Daily Board Rate</h2></div><button className="icon-button" aria-label="More rate options"><MoreHorizontal size={19} /></button></div>
-                <p className="rate-date"><span className="rate-live-dot" /> Effective {dateLabel}</p>
-                <label className="rate-row rate-edit-row"><span><i className="metal-dot silver-dot" /> Silver Rate / Gram (₹)</span><span className="rate-input-wrap"><span>₹</span><input aria-label="Board Silver Rate per gram" type="number" min="0" step="0.01" value={boardRate} onChange={(event) => setBoardRate(event.target.value)} placeholder="Enter rate" /><span>/ g</span></span></label>
-                <button className="text-link" onClick={() => setActivePage("Settings")}>Update silver rate <ChevronRight size={14} /></button>
-              </section>
-
               <section className="panel activity-panel">
                 <div className="side-panel-heading"><div><h2>Recent estimates</h2><span className="activity-count">{estimates.length} total</span></div><button className="icon-button" aria-label="More estimates"><MoreHorizontal size={19} /></button></div>
                 <div className="activity-list">{estimates.length === 0 ? <div className="activity-empty">No saved estimates yet.</div> : estimates.slice(0, 4).map((entry) => <div className="activity-item" key={entry.id}><div className={`activity-avatar avatar-${entry.customer.charCodeAt(0) % 4}`}>{entry.customer.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div><div className="activity-detail"><strong>{entry.customer}</strong><span>{entry.number} · {entry.date}</span></div><div className="activity-amount"><strong>{currency(entry.amount)}</strong><span className={`status-badge ${entry.status === "Billed" ? "status-billed" : "status-estimate"}`}>{entry.status}</span></div></div>)}</div>

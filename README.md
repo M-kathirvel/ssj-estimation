@@ -21,6 +21,9 @@ This local mode is intended for single-device prototyping, not as a secure, mult
 
 - Net weight = max(0, gross weight − cover tare)
 - Pure silver weight = net weight × silver touch ÷ 100
-- Line amount = pure silver weight × silver rate + (net weight × making-charge rate)
-- Cash and bank settlements reduce the displayed cash balance; silver bullion and old-silver exchange reduce the pure-silver balance.
-- Estimate number, billing date, daily silver board rate, silver rate, and making-charge rate are editable. Silver item rates start blank; row values, amounts, and totals recalculate as they are entered.
+- Sales pure weight = max(0, gross weight − cover tare) × manual touch ÷ 100
+- Item amount = sales pure weight × manually entered silver rate + (net weight × making-charge rate)
+- Customer pure return = return weight × manual return touch ÷ 100; rate-cut metal credit = customer pure return × manually entered return-metal market rate
+- Net payable = max(0, item total − metal credit − discount); balance due = net payable − cash paid − bank/UPI paid
+- Settlement supports cash-only, silver-exchange-only, and hybrid/split modes. Estimate number, billing date, both manual touch mappings, per-item silver rate, making-charge rate, return-metal market rate, and discount are editable.
+- New item rows start with blank PCS, weights, touch, silver rate, and making-charge fields. Payment, discount, and return-metal numeric inputs also start blank; empty or invalid values safely calculate as zero, and derived weights and amounts update as you type.

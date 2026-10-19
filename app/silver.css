@@ -7,8 +7,6 @@
 .customer-option-select>svg{color:#a3adaa}
 .customer-edit-button{height:30px;width:30px;flex-shrink:0;margin-right:5px;border:0;border-radius:5px;background:transparent;color:#87958e;cursor:pointer}
 .customer-edit-button:hover{background:#eaf4ef;color:#267460}
-.touch-select{width:60px;height:25px;border:1px solid transparent;border-radius:3px;background:transparent;color:#43564c;font-size:8px;text-align:right}
-.touch-select:focus,.touch-select:hover{border-color:#dce6e1;background:#fff;outline:0}
 .settlement-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
 .settlement-touch{height:21px;max-width:53px;border:1px solid #e9edeb;border-radius:3px;background:#fff;color:#62716a;font-size:8px}
 .empty-billing{height:74px!important;text-align:center!important;color:#99a39f!important;font-size:10px!important}
@@ -34,10 +32,30 @@
 .date-input-wrap{height:33px;display:flex;align-items:center;gap:6px;border:1px solid #e7ebed;border-radius:5px;background:#fff;padding:0 8px;color:#8e999e}
 .estimate-meta .meta-date-input{height:29px;min-width:0;width:100%;border:0;border-radius:0;background:transparent;padding:0;color:#52615b;font-size:10px;outline:0}
 .date-input-wrap:focus-within{border-color:#8ebbad;box-shadow:0 0 0 2px #e9f5f1}
-.rate-edit-row{gap:8px}
-.rate-input-wrap{display:flex;align-items:center;gap:5px;color:#75817b}
-.rate-input-wrap input{width:96px;height:29px;border:1px solid #e4eae7;border-radius:5px;padding:0 7px;text-align:right;color:#34453e;font-size:11px;outline:0}
-.rate-input-wrap input:focus{border-color:#8ebbad;box-shadow:0 0 0 2px #e9f5f1}
 .estimate-table td input:focus,.estimate-table td input:hover{font-variant-numeric:tabular-nums}
+.app-shell label,.app-shell button,.app-shell input,.app-shell select,.app-shell textarea,.app-shell table th,.app-shell table td{font-weight:700!important}
+.app-shell button *,.app-shell label *,.app-shell table th *,.app-shell table td *{font-weight:700!important}
+.app-shell label,.app-shell table th,.app-shell table td,.app-shell input,.app-shell select,.app-shell textarea{color:#17271f}
+.app-shell .estimate-table th,.app-shell .ledger-table th{color:#263831;font-size:9px}
+.app-shell .estimate-table td,.app-shell .ledger-table td{color:#263831;font-size:10px}
+.app-shell .estimate-table td input,.app-shell .estimate-table td select{color:#15251f;font-size:10px}
+.app-shell input::placeholder,.app-shell textarea::placeholder{color:#66736d;opacity:1}
+.app-shell .settlement-mode-field{display:grid;grid-template-columns:minmax(120px,1fr) minmax(180px,1.5fr);align-items:center;gap:12px;margin:12px 0;color:#263831;font-size:11px}
+.settlement-mode-field select{height:35px;border:1px solid #cbd6d0;border-radius:5px;background:#fff;padding:0 9px;color:#1d3028;font-size:11px}
+.manual-touch-input{width:68px!important}
+.settlement-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;margin-top:12px;padding:9px 11px;border:1px solid #cbd9d1;border-radius:6px;background:#f6faf7}
+.settlement-breakdown>div{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:31px;border-bottom:1px solid #dfe8e2;color:#35473e;font-size:10px}
+.settlement-breakdown>div strong{color:#172b22;font-size:11px;font-weight:800}
+.settlement-breakdown .breakdown-total{border-top:2px solid #607a6b;color:#12271d;font-size:11px}
+.settlement-breakdown .breakdown-due{border:0;border-radius:4px;background:#e4f1e9;padding:0 7px;color:#10251b;font-size:12px}
+.settlement-breakdown .breakdown-due strong{font-size:14px}
+.settlement-computed{justify-content:space-between}
+.settlement-computed strong{color:#17382b;font-size:11px;font-weight:800}
+.settlement-section .settlement-heading h3{color:#172b22}
+.settle-field>span{color:#34463c}
+.settlement-heading>div>span{color:#47574e}
+.balance-summary span{color:#425249}
+.estimate-table th,.estimate-table td,.ledger-table th,.ledger-table td{border-color:#d9e1dc}
 @media(max-width:680px){.settlement-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.customer-modal-heading{padding:16px 17px 13px}.customer-modal form{padding:15px 17px 17px}}
-@media print{.modal-backdrop{display:none!important}.customer-dropdown,.touch-select,.settlement-touch{display:none!important}}
+@media(max-width:680px){.settlement-breakdown{grid-template-columns:1fr}.app-shell .settlement-mode-field{grid-template-columns:1fr;gap:6px}}
+@media print{.modal-backdrop{display:none!important}.customer-dropdown,.settlement-touch{display:none!important}}
