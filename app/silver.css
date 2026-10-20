@@ -28,14 +28,15 @@
 .customer-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 .estimate-meta .field-label{display:block;margin:0 0 6px;color:#737f8b;font-size:9px;font-weight:600}
 .estimate-meta .meta-input{height:33px;width:100%;border:1px solid #e7ebed;border-radius:5px;background:#fff;padding:0 9px;color:#37454c;font-size:10px;outline:0}
-.estimate-meta .meta-input:focus,.estimate-meta .meta-date-input:focus{border-color:#8ebbad;box-shadow:0 0 0 2px #e9f5f1}
-.estimate-meta{grid-template-columns:1.3fr 1fr 1fr 1fr 1fr}
+.estimate-meta .meta-input:focus{border-color:#8ebbad;box-shadow:0 0 0 2px #e9f5f1}
+.estimate-meta{grid-template-columns:1.3fr 1fr 1.15fr 1fr}
 .board-rate-field .field-label{color:#123e2c;font-size:10px}
 .board-rate-field .meta-input{height:36px;border:2px solid #328064;background:#f4fbf6;color:#102b1e;font-size:13px;font-weight:800!important}
 .board-rate-field .meta-input::placeholder{color:#738279}
-.date-input-wrap{height:33px;display:flex;align-items:center;gap:6px;border:1px solid #e7ebed;border-radius:5px;background:#fff;padding:0 8px;color:#8e999e}
-.estimate-meta .meta-date-input{height:29px;min-width:0;width:100%;border:0;border-radius:0;background:transparent;padding:0;color:#52615b;font-size:10px;outline:0}
-.date-input-wrap:focus-within{border-color:#8ebbad;box-shadow:0 0 0 2px #e9f5f1}
+.live-date-field .field-label{color:#123e2c;font-size:10px}
+.live-date-display{height:36px;display:flex;align-items:center;gap:8px;overflow:hidden;border:2px solid #328064;border-radius:5px;background:#f4fbf6;padding:0 9px;color:#102b1e;font-size:11px;font-weight:800}
+.live-date-display svg{flex-shrink:0;color:#267252}
+.live-date-display span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .estimate-table td input:focus,.estimate-table td input:hover{font-variant-numeric:tabular-nums}
 .app-shell label,.app-shell button,.app-shell input,.app-shell select,.app-shell textarea,.app-shell table th,.app-shell table td{font-weight:700!important}
 .app-shell button *,.app-shell label *,.app-shell table th *,.app-shell table td *{font-weight:700!important}

@@ -171,17 +171,13 @@ export default function Home() {
     const today = new Date();
     return `S${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}001`;
   });
-  const [estimateDate, setEstimateDate] = useState(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  });
+  const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [customerQuery, setCustomerQuery] = useState("");
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
   const [customerForm, setCustomerForm] = useState({ name: "", phone: "", address: "", gstin: "" });
-  const [thru, setThru] = useState("");
   const [settlement, setSettlement] = useState<Settlement>({
     mode: "hybrid",
     cash: "",
@@ -217,6 +213,11 @@ export default function Home() {
       setDataReady(true);
     });
     return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentDate(new Date()), 60_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -256,8 +257,13 @@ export default function Home() {
   const totalCashPaid = finiteCalculation(cashPaid + bankPaid);
   const balanceDue = finiteCalculation(netPayable - totalCashPaid);
 
-  const now = new Date();
-  const suggestedEstimateNumber = nextEstimateNumber(estimates, now);
+  const currentDateLabel = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(currentDate);
+  const suggestedEstimateNumber = nextEstimateNumber(estimates, currentDate);
   const filteredCustomers = customers.filter((entry) =>
     `${entry.name} ${entry.phone}`.toLowerCase().includes(customerQuery.toLowerCase()),
   );
@@ -304,15 +310,11 @@ export default function Home() {
       setNotice("Enter an estimate number before saving.");
       return;
     }
-    if (!estimateDate) {
-      setNotice("Select an estimate date before saving.");
-      return;
-    }
     const estimate: SavedEstimate = {
       id: crypto.randomUUID(),
       number: estimateNumber.trim(),
       customer: customer.name,
-      date: new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${estimateDate}T00:00:00`)),
+      date: currentDateLabel,
       amount: round(netPayable, 2),
       pure: round(totals.pure),
       gross: round(totals.gross),
@@ -479,7 +481,7 @@ export default function Home() {
             <div className="fy-pill"><span className="fy-dot" /> FY 2026–27 <ChevronDown size={14} /></div>
             <div className="topbar-divider" />
             <button className="icon-button notification-button" aria-label="Notifications"><Bell size={18} /><i /></button>
-            <div className="topbar-date"><CalendarDays size={15} /><span>Monday, 19 October 2026</span></div>
+            <div className="topbar-date"><CalendarDays size={15} /><span>{currentDateLabel}</span></div>
           </div>
         </header>
 
@@ -539,9 +541,8 @@ export default function Home() {
                     {canManageCustomers && <button className="add-customer-option" onClick={() => openCustomerForm()}><Plus size={14} /> Add New Customer</button>}
                   </div>}
                 </div>
-                <div className="meta-field thru-field"><label>Thru / Broker</label><input value={thru} onChange={(event) => setThru(event.target.value)} placeholder="Broker name (optional)" /></div>
                 <label className="meta-field"><span className="field-label">Estimate no.</span><input className="meta-input" type="text" value={estimateNumber} onChange={(event) => setEstimateNumber(event.target.value)} placeholder={suggestedEstimateNumber} autoComplete="off" /></label>
-                <label className="meta-field"><span className="field-label">Date</span><span className="date-input-wrap"><CalendarDays size={14} /><input className="meta-date-input" type="date" value={estimateDate} onChange={(event) => setEstimateDate(event.target.value)} /></span></label>
+                <div className="meta-field live-date-field"><span className="field-label">Date &amp; day</span><div className="live-date-display"><CalendarDays size={15} /><span>{currentDateLabel}</span></div></div>
                 <label className="meta-field board-rate-field"><span className="field-label">Board Rate (₹/g)</span><input aria-label="Board Rate ₹ per gram" className="meta-input" type="number" min="0" step="0.01" value={boardRate} onChange={(event) => setBoardRate(event.target.value)} placeholder="0.00" /></label>
               </div>
 
@@ -640,7 +641,7 @@ export default function Home() {
             <div className="ledger-footer"><span>Showing <strong>{Math.min(filteredEstimates.length, 5)}</strong> of <strong>{filteredEstimates.length}</strong> estimates</span><div className="pagination"><button aria-label="Previous page" disabled><ChevronLeft size={15} /></button><button className="page-current">1</button><button aria-label="Next page" disabled><ChevronRight size={15} /></button></div></div>
           </section>
 
-          <footer className="app-footer"><span>© {now.getFullYear()} SSJ Estimation</span><span><span className="footer-status" /> All changes saved on this device</span><span>Financial year {now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1}–{String((now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1) + 1).slice(-2)}</span></footer>
+          <footer className="app-footer"><span>© {currentDate.getFullYear()} SSJ Estimation</span><span><span className="footer-status" /> All changes saved on this device</span><span>Financial year {currentDate.getMonth() >= 3 ? currentDate.getFullYear() : currentDate.getFullYear() - 1}–{String((currentDate.getMonth() >= 3 ? currentDate.getFullYear() : currentDate.getFullYear() - 1) + 1).slice(-2)}</span></footer>
         </div>
       </section>
       {showCustomerForm && canManageCustomers && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowCustomerForm(false); }}>
