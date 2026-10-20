@@ -439,7 +439,7 @@ export default function Home() {
 
         <div className="shop-switcher">
           <div className="shop-avatar">S</div>
-          <div className="shop-copy"><strong>Siva Surya Jewellers</strong><span>Chennai · Main branch</span></div>
+          <div className="shop-copy"><strong>Siva Surya Jewellers</strong><span>Coimbatore · Main branch</span></div>
           <ChevronDown size={15} className="muted-icon" />
         </div>
 
